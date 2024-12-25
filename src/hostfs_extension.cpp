@@ -9,6 +9,7 @@
 
 #include <duckdb/parser/parsed_data/create_scalar_function_info.hpp>
 #include <iomanip>      // for std::fixed and std::setprecision
+#include <duckdb/function/macro_function.hpp>
 
 #include "third_party/filesystem.hpp"
 
@@ -21,7 +22,6 @@
 namespace fs = ghc::filesystem;
 
 namespace duckdb {
-
     string PragmaChangeDir(ClientContext &context, const FunctionParameters &parameters) {
         return StringUtil::Format("SELECT * FROM cd(%s);",
                                   KeywordHelper::WriteQuoted(parameters.values[0].ToString(), '\''));
@@ -56,7 +56,6 @@ namespace duckdb {
     }
 
     static void LoadInternal(DatabaseInstance &instance) {
-
         // Register scalar functions
         auto hostfs_scalar_function = ScalarFunction("hostfs", {LogicalType::VARCHAR}, LogicalType::VARCHAR,
                                                      HostfsScalarFun);
@@ -64,6 +63,21 @@ namespace duckdb {
 
         auto hostfs_pwd_function = ScalarFunction("pwd", {}, LogicalType::VARCHAR, PrintWorkingDirectoryFun);
         ExtensionUtil::RegisterFunction(instance, hostfs_pwd_function);
+
+
+
+
+        auto hostfs_path_separator_function = ScalarFunction("path_separator", {}, LogicalType::VARCHAR,
+                                                             GetPathSeparatorScalarFun);
+        ExtensionUtil::RegisterFunction(instance, hostfs_path_separator_function);
+
+        // create split_path macro
+        Connection conn(instance);
+        // Execute the macro directly in the current context
+        const auto macro =
+                "CREATE MACRO split_path(path) AS list_filter(string_split(path, path_separator()), e -> len(e) > 0);";
+        auto query_result = conn.Query(macro);
+
 
         auto hostfs_human_readable_size_function = ScalarFunction("hsize", {LogicalType::HUGEINT},
                                                                   LogicalType::VARCHAR, HumanReadableSizeScalarFun);
@@ -88,7 +102,6 @@ namespace duckdb {
         ExtensionUtil::RegisterFunction(instance, hostfs_get_file_extension_function);
 
 
-
         auto hostfs_get_file_size_function = ScalarFunction("file_size", {LogicalType::VARCHAR}, LogicalType::UBIGINT,
                                                             GetFileSizeScalarFun);
         ExtensionUtil::RegisterFunction(instance, hostfs_get_file_size_function);
@@ -109,7 +122,8 @@ namespace duckdb {
                                                             GetPathTypeScalarFun);
         ExtensionUtil::RegisterFunction(instance, hostfs_get_path_type_function);
 
-        auto hostfs_last_modified_function = ScalarFunction("file_last_modified", {LogicalType::VARCHAR}, LogicalType::TIMESTAMP,
+        auto hostfs_last_modified_function = ScalarFunction("file_last_modified", {LogicalType::VARCHAR},
+                                                            LogicalType::TIMESTAMP,
                                                             GetFileLastModifiedScalarFun);
 
         ExtensionUtil::RegisterFunction(instance, hostfs_last_modified_function);
@@ -120,10 +134,12 @@ namespace duckdb {
         TableFunction list_dir_default({}, ListDirRecursiveFun, ListDirBind, ListDirRecursiveState::Init);
         list_dir_set.AddFunction(list_dir_default);
 
-        TableFunction list_dir_one_arg({LogicalType::VARCHAR}, ListDirRecursiveFun, ListDirBind, ListDirRecursiveState::Init);
+        TableFunction list_dir_one_arg({LogicalType::VARCHAR}, ListDirRecursiveFun, ListDirBind,
+                                       ListDirRecursiveState::Init);
         list_dir_set.AddFunction(list_dir_one_arg);
 
-        TableFunction list_dir_two_arg({LogicalType::VARCHAR, LogicalType::BOOLEAN}, ListDirRecursiveFun, ListDirBind, ListDirRecursiveState::Init);
+        TableFunction list_dir_two_arg({LogicalType::VARCHAR, LogicalType::BOOLEAN}, ListDirRecursiveFun, ListDirBind,
+                                       ListDirRecursiveState::Init);
         list_dir_set.AddFunction(list_dir_two_arg);
 
         ExtensionUtil::RegisterFunction(instance, list_dir_set);
@@ -131,16 +147,21 @@ namespace duckdb {
 
         TableFunctionSet list_dir_recursive_set("lsr");
 
-        TableFunction list_dir_recursive_default({}, ListDirRecursiveFun, ListDirRecursiveBind, ListDirRecursiveState::Init);
+        TableFunction list_dir_recursive_default({}, ListDirRecursiveFun, ListDirRecursiveBind,
+                                                 ListDirRecursiveState::Init);
         list_dir_recursive_set.AddFunction(list_dir_recursive_default);
 
-        TableFunction list_dir_recursive_one_arg({LogicalType::VARCHAR}, ListDirRecursiveFun, ListDirRecursiveBind, ListDirRecursiveState::Init);
+        TableFunction list_dir_recursive_one_arg({LogicalType::VARCHAR}, ListDirRecursiveFun, ListDirRecursiveBind,
+                                                 ListDirRecursiveState::Init);
         list_dir_recursive_set.AddFunction(list_dir_recursive_one_arg);
 
-        TableFunction list_dir_recursive_two_args({LogicalType::VARCHAR, LogicalType::INTEGER}, ListDirRecursiveFun, ListDirRecursiveBind, ListDirRecursiveState::Init);
+        TableFunction list_dir_recursive_two_args({LogicalType::VARCHAR, LogicalType::INTEGER}, ListDirRecursiveFun,
+                                                  ListDirRecursiveBind, ListDirRecursiveState::Init);
         list_dir_recursive_set.AddFunction(list_dir_recursive_two_args);
 
-        TableFunction list_dir_recursive_tree_args({LogicalType::VARCHAR, LogicalType::INTEGER, LogicalType::BOOLEAN}, ListDirRecursiveFun, ListDirRecursiveBind, ListDirRecursiveState::Init);
+        TableFunction list_dir_recursive_tree_args({LogicalType::VARCHAR, LogicalType::INTEGER, LogicalType::BOOLEAN},
+                                                   ListDirRecursiveFun, ListDirRecursiveBind,
+                                                   ListDirRecursiveState::Init);
         list_dir_recursive_set.AddFunction(list_dir_recursive_tree_args);
 
         ExtensionUtil::RegisterFunction(instance, list_dir_recursive_set);
@@ -172,7 +193,8 @@ namespace duckdb {
 
         PragmaFunction lsr_default = PragmaFunction::PragmaCall("lsr", PragmaLSRecursiveDefault, {});
         PragmaFunction lsr_one_arg = PragmaFunction::PragmaCall("lsr", PragmaLSRecursiveOneArg, {LogicalType::VARCHAR});
-        PragmaFunction lsr_two_args = PragmaFunction::PragmaCall("lsr", PragmaLSRecursiveTwoArgs, {LogicalType::VARCHAR, LogicalType::INTEGER});
+        PragmaFunction lsr_two_args = PragmaFunction::PragmaCall("lsr", PragmaLSRecursiveTwoArgs,
+                                                                 {LogicalType::VARCHAR, LogicalType::INTEGER});
 
         lsr_set.AddFunction(lsr_default);
         lsr_set.AddFunction(lsr_one_arg);
@@ -196,11 +218,9 @@ namespace duckdb {
         return "";
 #endif
     }
-
 } // namespace duckdb
 
 extern "C" {
-
 DUCKDB_EXTENSION_API void hostfs_init(duckdb::DatabaseInstance &db) {
     duckdb::DuckDB db_wrapper(db);
     db_wrapper.LoadExtension<duckdb::HostfsExtension>();
