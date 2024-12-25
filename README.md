@@ -2,6 +2,8 @@
 <img src="https://github.com/user-attachments/assets/fa806574-9120-474f-8cb4-b17b1fbc3cd1" width=250 />
 
 # HostFS
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https://tinyurl.com/duckstats&label=Downloads&color=blue&query=%24.hostfs)
+
 HostFS allows you to navigate and explore the host filesystem from DuckDB.
 
 Install via 
