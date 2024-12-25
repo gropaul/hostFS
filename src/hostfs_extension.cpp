@@ -75,7 +75,7 @@ namespace duckdb {
         Connection conn(instance);
         // Execute the macro directly in the current context
         const auto macro =
-                "CREATE MACRO split_path(path) AS list_filter(string_split(path, path_separator()), e -> len(e) > 0);";
+                "CREATE MACRO path_split(path) AS list_filter(string_split(path, path_separator()), e -> len(e) > 0);";
         auto query_result = conn.Query(macro);
 
 
