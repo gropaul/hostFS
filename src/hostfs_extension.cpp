@@ -5,10 +5,8 @@
 #include "duckdb/common/exception.hpp"
 #include "duckdb/common/string_util.hpp"
 #include "duckdb/function/scalar_function.hpp"
-#include "duckdb/main/extension_util.hpp"
 
 #include <duckdb/parser/parsed_data/create_scalar_function_info.hpp>
-#include <iomanip>      // for std::fixed and std::setprecision
 #include <duckdb/function/macro_function.hpp>
 
 #include "third_party/filesystem.hpp"
@@ -55,21 +53,23 @@ namespace duckdb {
                                   parameters.values[1].ToString());
     }
 
-    static void LoadInternal(DatabaseInstance &instance) {
+    static void LoadInternal(ExtensionLoader &loader) {
+
+        auto &instance = loader.GetDatabaseInstance();
         // Register scalar functions
         auto hostfs_scalar_function = ScalarFunction("hostfs", {LogicalType::VARCHAR}, LogicalType::VARCHAR,
                                                      HostfsScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_scalar_function);
+        loader.RegisterFunction(hostfs_scalar_function);
 
         auto hostfs_pwd_function = ScalarFunction("pwd", {}, LogicalType::VARCHAR, PrintWorkingDirectoryFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_pwd_function);
+        loader.RegisterFunction(hostfs_pwd_function);
 
 
 
 
         auto hostfs_path_separator_function = ScalarFunction("path_separator", {}, LogicalType::VARCHAR,
                                                              GetPathSeparatorScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_path_separator_function);
+        loader.RegisterFunction(hostfs_path_separator_function);
 
         // create split_path macro
         Connection conn(instance);
@@ -81,52 +81,52 @@ namespace duckdb {
 
         auto hostfs_human_readable_size_function = ScalarFunction("hsize", {LogicalType::HUGEINT},
                                                                   LogicalType::VARCHAR, HumanReadableSizeScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_human_readable_size_function);
+        loader.RegisterFunction(hostfs_human_readable_size_function);
 
         auto hostfs_is_file_function = ScalarFunction("is_file", {LogicalType::VARCHAR}, LogicalType::BOOLEAN,
                                                       IsFileScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_is_file_function);
+        loader.RegisterFunction(hostfs_is_file_function);
 
         auto hostfs_is_dir_function = ScalarFunction("is_dir", {LogicalType::VARCHAR}, LogicalType::BOOLEAN,
                                                      IsDirectoryScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_is_dir_function);
+        loader.RegisterFunction(hostfs_is_dir_function);
 
         auto hostfs_get_filename_function = ScalarFunction("file_name", {LogicalType::VARCHAR}, LogicalType::VARCHAR,
                                                            GetFilenameScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_get_filename_function);
+        loader.RegisterFunction(hostfs_get_filename_function);
 
 
         auto hostfs_get_file_extension_function = ScalarFunction("file_extension", {LogicalType::VARCHAR},
                                                                  LogicalType::VARCHAR,
                                                                  GetFileExtensionScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_get_file_extension_function);
+        loader.RegisterFunction(hostfs_get_file_extension_function);
 
 
         auto hostfs_get_file_size_function = ScalarFunction("file_size", {LogicalType::VARCHAR}, LogicalType::UBIGINT,
                                                             GetFileSizeScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_get_file_size_function);
+        loader.RegisterFunction(hostfs_get_file_size_function);
 
 
         auto hostfs_get_path_absolute_function = ScalarFunction("absolute_path", {LogicalType::VARCHAR},
                                                                 LogicalType::VARCHAR,
                                                                 GetPathAbsoluteScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_get_path_absolute_function);
+        loader.RegisterFunction(hostfs_get_path_absolute_function);
 
 
         auto hostfs_get_path_exists_function = ScalarFunction("path_exists", {LogicalType::VARCHAR},
                                                               LogicalType::BOOLEAN,
                                                               GetPathExistsScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_get_path_exists_function);
+        loader.RegisterFunction(hostfs_get_path_exists_function);
 
         auto hostfs_get_path_type_function = ScalarFunction("path_type", {LogicalType::VARCHAR}, LogicalType::VARCHAR,
                                                             GetPathTypeScalarFun);
-        ExtensionUtil::RegisterFunction(instance, hostfs_get_path_type_function);
+        loader.RegisterFunction(hostfs_get_path_type_function);
 
         auto hostfs_last_modified_function = ScalarFunction("file_last_modified", {LogicalType::VARCHAR},
                                                             LogicalType::TIMESTAMP,
                                                             GetFileLastModifiedScalarFun);
 
-        ExtensionUtil::RegisterFunction(instance, hostfs_last_modified_function);
+        loader.RegisterFunction(hostfs_last_modified_function);
 
         // Register table functions
         TableFunctionSet list_dir_set("ls");
@@ -142,7 +142,7 @@ namespace duckdb {
                                        ListDirRecursiveState::Init);
         list_dir_set.AddFunction(list_dir_two_arg);
 
-        ExtensionUtil::RegisterFunction(instance, list_dir_set);
+        loader.RegisterFunction(list_dir_set);
 
 
         TableFunctionSet list_dir_recursive_set("lsr");
@@ -164,19 +164,19 @@ namespace duckdb {
                                                    ListDirRecursiveState::Init);
         list_dir_recursive_set.AddFunction(list_dir_recursive_tree_args);
 
-        ExtensionUtil::RegisterFunction(instance, list_dir_recursive_set);
+        loader.RegisterFunction(list_dir_recursive_set);
 
 
         TableFunction change_dir("cd", {LogicalType::VARCHAR}, ChangeDirFun, ChangeDirBind, ChangeDirState::Init);
-        ExtensionUtil::RegisterFunction(instance, change_dir);
+        loader.RegisterFunction(change_dir);
 
         // Pragma functions
 
         PragmaFunction cd = PragmaFunction::PragmaCall("cd", PragmaChangeDir, {LogicalType::VARCHAR});
-        ExtensionUtil::RegisterFunction(instance, cd);
+        loader.RegisterFunction(cd);
 
         PragmaFunction pwd = PragmaFunction::PragmaCall("pwd", PragmaPrintWorkingDirectory, {});
-        ExtensionUtil::RegisterFunction(instance, pwd);
+        loader.RegisterFunction(pwd);
 
 
         PragmaFunctionSet ls_set("ls");
@@ -186,7 +186,7 @@ namespace duckdb {
         ls_set.AddFunction(ls_default);
         ls_set.AddFunction(ls_one_arg);
 
-        ExtensionUtil::RegisterFunction(instance, ls_set);
+        loader.RegisterFunction(ls_set);
 
 
         PragmaFunctionSet lsr_set("lsr");
@@ -200,20 +200,19 @@ namespace duckdb {
         lsr_set.AddFunction(lsr_one_arg);
         lsr_set.AddFunction(lsr_two_args);
 
-        ExtensionUtil::RegisterFunction(instance, lsr_set);
+        loader.RegisterFunction(lsr_set);
     }
 
-    void HostfsExtension::Load(DuckDB &db) {
-        LoadInternal(*db.instance);
+    void HostfsExtension::Load(ExtensionLoader &loader) {
+        LoadInternal(loader);
     }
-
     std::string HostfsExtension::Name() {
-        return "hostfs";
+        return "quack";
     }
 
     std::string HostfsExtension::Version() const {
-#ifdef EXT_VERSION_DUCKFS
-        return EXT_VERSION_DUCKFS;
+#ifdef EXT_VERSION_QUACK
+        return EXT_VERSION_QUACK;
 #else
         return "";
 #endif
@@ -221,15 +220,12 @@ namespace duckdb {
 } // namespace duckdb
 
 extern "C" {
-DUCKDB_EXTENSION_API void hostfs_init(duckdb::DatabaseInstance &db) {
-    duckdb::DuckDB db_wrapper(db);
-    db_wrapper.LoadExtension<duckdb::HostfsExtension>();
+
+    DUCKDB_CPP_EXTENSION_ENTRY(hostfs, loader) {
+        duckdb::LoadInternal(loader);
+    }
 }
 
-DUCKDB_EXTENSION_API const char *hostfs_version() {
-    return duckdb::DuckDB::LibraryVersion();
-}
-}
 
 #ifndef DUCKDB_EXTENSION_MAIN
 #error DUCKDB_EXTENSION_MAIN not defined
