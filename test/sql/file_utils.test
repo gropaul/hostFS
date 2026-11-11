@@ -1,6 +1,6 @@
 # name: test/sql/file_utils.test
 # description: test hostfs extension file utils
-# group: [hostfs]
+# group: [sql]
 
 require hostfs
 
