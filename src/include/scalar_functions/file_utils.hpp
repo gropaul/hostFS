@@ -47,12 +47,10 @@ static void GetPathSeparatorScalarFun(DataChunk &input, ExpressionState &state,
 static void IsFileScalarFun(DataChunk &input, ExpressionState &state,
                             Vector &result) {
   auto &path_vector = input.data[0];
-  UnaryExecutor::ExecuteWithNulls<string_t, bool>(
-      path_vector, result, input.size(),
-      [&](string_t path, ValidityMask &mask, idx_t idx) {
+  UnaryExecutor::Execute<string_t, bool>(
+      path_vector, result, input.size(), [&](string_t path) -> optional<bool> {
         if (!fs::exists(path.GetString())) {
-          mask.SetInvalid(idx);
-          return false;
+          return nullopt;
         }
         return fs::is_regular_file(path.GetString());
       });
@@ -61,12 +59,10 @@ static void IsFileScalarFun(DataChunk &input, ExpressionState &state,
 static void IsDirectoryScalarFun(DataChunk &input, ExpressionState &state,
                                  Vector &result) {
   auto &path_vector = input.data[0];
-  UnaryExecutor::ExecuteWithNulls<string_t, bool>(
-      path_vector, result, input.size(),
-      [&](string_t path, ValidityMask &mask, idx_t idx) {
+  UnaryExecutor::Execute<string_t, bool>(
+      path_vector, result, input.size(), [&](string_t path) -> optional<bool> {
         if (!fs::exists(path.GetString())) {
-          mask.SetInvalid(idx);
-          return false;
+          return nullopt;
         }
         return fs::is_directory(path.GetString());
       });
@@ -75,13 +71,11 @@ static void IsDirectoryScalarFun(DataChunk &input, ExpressionState &state,
 static void GetFilenameScalarFun(DataChunk &input, ExpressionState &state,
                                  Vector &result) {
   auto &path_vector = input.data[0];
-  UnaryExecutor::ExecuteWithNulls<string_t, string_t>(
+  UnaryExecutor::Execute<string_t, string_t>(
       path_vector, result, input.size(),
-      [&](string_t path, ValidityMask &mask, idx_t idx) {
+      [&](string_t path) -> optional<string_t> {
         if (!fs::exists(path.GetString())) {
-          mask.SetInvalid(idx);
-          const string_t empty_string("");
-          return empty_string;
+          return nullopt;
         }
         return StringVector::AddString(
             result, fs::path(path.GetString()).filename().string());
@@ -91,13 +85,11 @@ static void GetFilenameScalarFun(DataChunk &input, ExpressionState &state,
 static void GetFileExtensionScalarFun(DataChunk &input, ExpressionState &state,
                                       Vector &result) {
   auto &path_vector = input.data[0];
-  UnaryExecutor::ExecuteWithNulls<string_t, string_t>(
+  UnaryExecutor::Execute<string_t, string_t>(
       path_vector, result, input.size(),
-      [&](string_t path, ValidityMask &mask, idx_t idx) {
+      [&](string_t path) -> optional<string_t> {
         if (!fs::exists(path.GetString())) {
-          mask.SetInvalid(idx);
-          const string_t empty_string("");
-          return empty_string;
+          return nullopt;
         }
         std::string path_str = path.GetString();
         if (fs::is_directory(path_str)) {
@@ -112,13 +104,12 @@ static void GetFileExtensionScalarFun(DataChunk &input, ExpressionState &state,
 static void GetFileSizeScalarFun(DataChunk &input, ExpressionState &state,
                                  Vector &result) {
   auto &path_vector = input.data[0];
-  UnaryExecutor::ExecuteWithNulls<string_t, uint64_t>(
+  UnaryExecutor::Execute<string_t, uint64_t>(
       path_vector, result, input.size(),
-      [&](string_t path, ValidityMask &mask, idx_t idx) {
+      [&](string_t path) -> optional<uint64_t> {
         // check if the path exists
         if (!fs::exists(path.GetString())) {
-          mask.SetInvalid(idx);
-          return static_cast<uint64_t>(0);
+          return nullopt;
         }
 
         // return 0 if dir
@@ -140,13 +131,11 @@ static void GetFileSizeScalarFun(DataChunk &input, ExpressionState &state,
 static void GetPathAbsoluteScalarFun(DataChunk &input, ExpressionState &state,
                                      Vector &result) {
   auto &path_vector = input.data[0];
-  UnaryExecutor::ExecuteWithNulls<string_t, string_t>(
+  UnaryExecutor::Execute<string_t, string_t>(
       path_vector, result, input.size(),
-      [&](string_t path, ValidityMask &mask, idx_t idx) {
+      [&](string_t path) -> optional<string_t> {
         if (!fs::exists(path.GetString())) {
-          mask.SetInvalid(idx);
-          const string_t empty_string("");
-          return empty_string;
+          return nullopt;
         }
 
         // get the absolute path without any '/./' or '/../' components
@@ -173,14 +162,12 @@ static void GetPathExistsScalarFun(DataChunk &input, ExpressionState &state,
 static void GetPathTypeScalarFun(DataChunk &input, ExpressionState &state,
                                  Vector &result) {
   auto &path_vector = input.data[0];
-  UnaryExecutor::ExecuteWithNulls<string_t, string_t>(
+  UnaryExecutor::Execute<string_t, string_t>(
       path_vector, result, input.size(),
-      [&](string_t path, ValidityMask &mask, idx_t idx) {
+      [&](string_t path) -> optional<string_t> {
         // check if the path exists
         if (!fs::exists(path.GetString())) {
-          mask.SetInvalid(idx);
-          const string_t empty_string("");
-          return empty_string;
+          return nullopt;
         }
 
         std::string path_str =
@@ -204,15 +191,14 @@ static void GetFileLastModifiedScalarFun(DataChunk &input,
                                          Vector &result) {
   auto &path_vector = input.data[0];
 
-  UnaryExecutor::ExecuteWithNulls<string_t, timestamp_t>(
+  UnaryExecutor::Execute<string_t, timestamp_t>(
       path_vector, result, input.size(),
-      [&](string_t path, ValidityMask &mask, idx_t idx) {
+      [&](string_t path) -> optional<timestamp_t> {
         auto resolved_path = path.GetString();
 
         // if the path does not exist, return NULL
         if (!fs::exists(resolved_path)) {
-          mask.SetInvalid(idx);
-          return Timestamp::FromEpochSeconds(0);
+          return nullopt;
         }
 
         // Get the last modified time of the (possibly resolved) path
