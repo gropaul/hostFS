@@ -32,7 +32,7 @@ static void PrintWorkingDirectoryFun(DataChunk &input, ExpressionState &state,
   // get the current working directory
   auto cwd = fs::current_path();
   auto val = Value(cwd.string());
-  result.Reference(val);
+  result.Reference(val, count_t(input.size()));
 }
 
 static void GetPathSeparatorScalarFun(DataChunk &input, ExpressionState &state,
@@ -41,7 +41,7 @@ static void GetPathSeparatorScalarFun(DataChunk &input, ExpressionState &state,
   auto path_seperator = fs::path::preferred_separator;
   auto path_seperator_str = std::string(1, path_seperator);
   auto val = Value(path_seperator_str);
-  result.Reference(val);
+  result.Reference(val, count_t(input.size()));
 }
 
 static void IsFileScalarFun(DataChunk &input, ExpressionState &state,

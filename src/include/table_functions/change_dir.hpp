@@ -58,16 +58,16 @@ static void ChangeDirFun(ClientContext &context, TableFunctionInput &data_p,
   auto cwd = fs::current_path();
 
   // set the output
-  output.SetValue(0, 0, Value(cwd.string()));
-  output.SetValue(1, 0, Value(true));
+  output.data[0].Append(Value(cwd.string()));
+  output.data[1].Append(Value(true));
 
-  output.SetCardinality(1);
+  output.SetChildCardinality(1);
 }
 
 static unique_ptr<FunctionData> ChangeDirBind(ClientContext &context,
                                               TableFunctionBindInput &input,
                                               vector<LogicalType> &return_types,
-                                              vector<string> &names) {
+                                              vector<Identifier> &names) {
   names.emplace_back("current_directory");
   return_types.emplace_back(LogicalType::VARCHAR);
 

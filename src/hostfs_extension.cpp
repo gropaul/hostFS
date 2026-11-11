@@ -22,9 +22,8 @@ namespace fs = ghc::filesystem;
 namespace duckdb {
 string PragmaChangeDir(ClientContext &context,
                        const FunctionParameters &parameters) {
-  return StringUtil::Format(
-      "SELECT * FROM cd(%s);",
-      KeywordHelper::WriteQuoted(parameters.values[0].ToString(), '\''));
+  return StringUtil::Format("SELECT * FROM cd(%s);",
+                            SQLString(parameters.values[0].ToString()));
 }
 
 string PragmaPrintWorkingDirectory(ClientContext &context,
@@ -39,9 +38,8 @@ string PragmaLSDefault(ClientContext &context,
 
 string PragmaLSOneArg(ClientContext &context,
                       const FunctionParameters &parameters) {
-  return StringUtil::Format(
-      "SELECT * FROM ls(%s);",
-      KeywordHelper::WriteQuoted(parameters.values[0].ToString(), '\''));
+  return StringUtil::Format("SELECT * FROM ls(%s);",
+                            SQLString(parameters.values[0].ToString()));
 }
 
 string PragmaLSRecursiveDefault(ClientContext &context,
@@ -51,17 +49,15 @@ string PragmaLSRecursiveDefault(ClientContext &context,
 
 string PragmaLSRecursiveOneArg(ClientContext &context,
                                const FunctionParameters &parameters) {
-  return StringUtil::Format(
-      "SELECT * FROM lsr(%s);",
-      KeywordHelper::WriteQuoted(parameters.values[0].ToString(), '\''));
+  return StringUtil::Format("SELECT * FROM lsr(%s);",
+                            SQLString(parameters.values[0].ToString()));
 }
 
 string PragmaLSRecursiveTwoArgs(ClientContext &context,
                                 const FunctionParameters &parameters) {
-  return StringUtil::Format(
-      "SELECT * FROM lsr(%s, %s);",
-      KeywordHelper::WriteQuoted(parameters.values[0].ToString(), '\''),
-      parameters.values[1].ToString());
+  return StringUtil::Format("SELECT * FROM lsr(%s, %s);",
+                            SQLString(parameters.values[0].ToString()),
+                            SQLString(parameters.values[1].ToString()));
 }
 
 static void LoadInternal(ExtensionLoader &loader) {

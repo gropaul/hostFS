@@ -54,7 +54,8 @@ struct ListDirRecursiveState final : GlobalTableFunctionState {
 
 static unique_ptr<FunctionData>
 ListDirRecursiveBind(ClientContext &context, TableFunctionBindInput &input,
-                     vector<LogicalType> &return_types, vector<string> &names) {
+                     vector<LogicalType> &return_types,
+                     vector<Identifier> &names) {
   names.emplace_back("path");
   return_types.emplace_back(LogicalType::VARCHAR);
 
@@ -81,7 +82,7 @@ ListDirRecursiveBind(ClientContext &context, TableFunctionBindInput &input,
 static unique_ptr<FunctionData> ListDirBind(ClientContext &context,
                                             TableFunctionBindInput &input,
                                             vector<LogicalType> &return_types,
-                                            vector<string> &names) {
+                                            vector<Identifier> &names) {
   names.emplace_back("path");
   return_types.emplace_back(LogicalType::VARCHAR);
 
@@ -158,7 +159,7 @@ static void ListDirRecursiveFun(ClientContext &context,
   idx_t count = std::min<idx_t>(STANDARD_VECTOR_SIZE, remaining_count);
 
   // set up the chunk
-  output.SetCardinality(count);
+  output.SetChildCardinality(count);
 
   // set the paths in the chunk
   for (idx_t index = 0; index < count; index++) {
