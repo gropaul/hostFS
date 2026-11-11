@@ -1,6 +1,6 @@
 # name: test/sql/hostfs.test
 # description: test hostfs extension
-# group: [hostfs]
+# group: [sql]
 
 # Before we load the extension, this will fail
 statement error

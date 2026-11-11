@@ -1,6 +1,6 @@
 # name: test/sql/pragmas.test
 # description: test hostfs extension pragmas
-# group: [hostfs]
+# group: [sql]
 
 require hostfs
 
